@@ -70,21 +70,21 @@ bool SmarTC_VEML6070::launch()
         i_init = clearInt();
         if (!i_init)
         {
-            // TODO : Trace error
+            Serial.println("Fail to clearInt");
             return i_init;
         }
     }
     else
     {
-        // TODO : Trace warning.
-        // Instance already initialized
+        Serial.println("Instance already initialized");
+        return i_init;
     }
 
     // Init Integration Time
     cmd_buffer.bitfield.IT = i_it;
     if (!write())
     {
-        // TODO : Trace error
+        Serial.println("Fail to write Integration Time");
         i_init = false;
     }
 
@@ -94,7 +94,10 @@ bool SmarTC_VEML6070::launch()
 bool SmarTC_VEML6070::clearInt()
 {
     if (0 == Wire.requestFrom(VEML6070_ADDR_ARA, 1))
+    {
+        Serial.println("Unable to request from ARA address");
         return false;
+    }
 
     unsigned long start = millis();
     while (!Wire.available())
@@ -102,7 +105,7 @@ bool SmarTC_VEML6070::clearInt()
         delay(1);
         if (millis() - start > 5000)
         {
-            // TODO : Trace error
+            Serial.println("Wire timeout");
             return false;
         }
     }
@@ -115,19 +118,34 @@ bool SmarTC_VEML6070::clearInt()
 
 bool SmarTC_VEML6070::write()
 {
+    Serial.print("Write buffer : ");
+    Serial.println(cmd_buffer.buf, BIN);
+
     Wire.beginTransmission(VEML6070_ADDR_CMD);
     Wire.write(cmd_buffer.buf);
     byte ret = Wire.endTransmission();
 
-    if (ret)
+    switch (ret)
     {
-        // TODO Trace error with "ret" value (see https://www.arduino.cc/en/Reference/WireEndTransmission)
+    case 0:
+        return true;
+    case 1:
+        Serial.println("Data too long to fit in transmit buffer");
+        return false;
+    case 2:
+        Serial.println("received NACK on transmit of address");
+        return false;
+    case 3:
+        Serial.println("received NACK on transmit of data");
+        return false;
+    case 4:
+        Serial.println("other error");
+        return false;
+    default:
         return false;
     }
 
-    // TODO: Trace full byte buffer in debug trace
-
-    return true;
+    return false;
 }
 
 bool SmarTC_VEML6070::shutDown(bool enable)
@@ -135,7 +153,7 @@ bool SmarTC_VEML6070::shutDown(bool enable)
     cmd_buffer.bitfield.SD = enable;
     if (!write())
     {
-        // TODO Trace error
+        Serial.println("Fail to write SD command");
         return false;
     }
 
@@ -146,7 +164,7 @@ uint16_t SmarTC_VEML6070::readUV()
 {
     if (Wire.requestFrom(VEML6070_ADDR_MSB, 1) != 1)
     {
-        // TODO : Trace error
+        Serial.println("Fail to request MSB UV Value");
         return -1;
     }
 
@@ -155,7 +173,7 @@ uint16_t SmarTC_VEML6070::readUV()
 
     if (Wire.requestFrom(VEML6070_ADDR_LSB, 1) != 1)
     {
-        // TODO : Trace error
+        Serial.println("Fail to request LSB UV Value");
         return -1;
     }
 
@@ -172,7 +190,7 @@ bool SmarTC_VEML6070::setACK(bool active, bool steps)
     clearInt();
     if (!write())
     {
-        // TODO Trace error
+        Serial.println("Fail to write ACK settings");
         return false;
     }
 

@@ -69,6 +69,7 @@ typedef enum veml6070_it
 
 // TODO: Consider integration time when requesting a value. Only get value when IT has been reach depending on IT settings and RSet value.
 // TODO: Debug trace library.
+// TODO: Get aditionnal trace macro info from Sensor project
 
 class SmarTC_VEML6070
 {
@@ -133,7 +134,7 @@ public:
      */
     bool setACK(bool active, bool steps);
 
-    /**
+     /**
      * @brief Destroy the SmarTC_VEML6070 object
      */
     ~SmarTC_VEML6070();
