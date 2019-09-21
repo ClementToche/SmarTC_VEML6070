@@ -1,0 +1,36 @@
+{
+    "name": "SmarTC_VEML6070",
+    "version": "1.0.0",
+    "keywords": "sensor, uv, arduino",
+    "description": "Arduino library for VEML6070 UV sensor management over I2C bus",
+    "repository": {
+        "type": "git",
+        "url": "TODO"
+    },
+    "authors": [
+        {
+            "name": "Clément TOCHE",
+            "email": "ad@toche.fr",
+            "url": "TODO",
+            "maintainer": true
+        }
+    ],
+    "license": "GPL-3.0-only",
+    "homepage": "TODO",
+    "export":{
+        "include":
+        [
+            "src/*",
+            "include/*"
+        ]
+    },
+    "frameworks":"Arduino",
+    "platforms":[
+        "Atmel AVR",
+        "Espressif 32",
+        "Espressif 8266"
+    ],
+    "dependencies":{
+        
+    }
+}
