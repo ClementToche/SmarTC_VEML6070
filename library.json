@@ -5,18 +5,16 @@
     "description": "Arduino library for VEML6070 UV sensor management over I2C bus",
     "repository": {
         "type": "git",
-        "url": "TODO"
+        "url": "https://github.com/Cognitician/SmarTC_VEML6070.git"
     },
     "authors": [
         {
             "name": "Clément TOCHE",
             "email": "ad@toche.fr",
-            "url": "TODO",
             "maintainer": true
         }
     ],
     "license": "GPL-3.0-only",
-    "homepage": "TODO",
     "export":{
         "include":
         [
@@ -30,7 +28,5 @@
         "Espressif 32",
         "Espressif 8266"
     ],
-    "dependencies":{
-        
-    }
+    "dependencies":{ }
 }
