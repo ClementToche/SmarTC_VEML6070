@@ -14,8 +14,7 @@
 * GNU General Public License for more details.
 *
 * You should have received a copy of the SmarTC and the GNU General
-* Public License along with this program. If not,
-* see <http://www.lsstcorp.org/LegalNotices/>.
+* Public License along with this program.
 */
 
 /**
@@ -48,6 +47,36 @@ SmarTC_VEML6070::SmarTC_VEML6070(veml6070_it_e it, int rset)
     i_it = it;
     i_rset = rset;
     i_init = false;
+
+    /* Calculation of refresh time depending on IT settings.
+    * See http://www.vishay.com/docs/84277/veml6070.pdf (p8)
+    * Calculation is made in ms considering linear function with 
+    * 10% additionnal time (because of RSet value worst tolerance)
+    * 
+    * +-----+-----------+-----------+------------------+
+    * | IT  | 300K Rset | 600K Rset |       Coef       |
+    * +-----+-----------+-----------+------------------+
+    * | H_T |      62.5 |       125 | 0.20833333333333 |
+    * | 1_T |       125 |       250 | 0.41666666666667 |
+    * | 2_T |       250 |       500 | 0.83333333333333 |
+    * | 4_T |       500 |      1000 |  0.6666666666667 |
+    * +-----+-----------+-----------+------------------+
+    */
+    switch (it)
+    {
+    case VEML6070_H_T:
+        i_itv = static_cast<uint>(0.20833333333333 * rset * 1.1);
+        break;
+    case VEML6070_1_T:
+        i_itv = static_cast<uint>(0.41666666666667 * rset * 1.1);
+        break;
+    case VEML6070_2_T:
+        i_itv = static_cast<uint>(0.83333333333333 * rset * 1.1);
+        break;
+    case VEML6070_4_T:
+        i_itv = static_cast<uint>(1.6666666666667 * rset * 1.1);
+        break;
+    }
 }
 
 SmarTC_VEML6070::~SmarTC_VEML6070()
@@ -116,6 +145,42 @@ bool SmarTC_VEML6070::clearInt()
     return true;
 }
 
+bool SmarTC_VEML6070::shutDown(bool enable)
+{
+    cmd_buffer.bitfield.SD = enable;
+    if (!write())
+    {
+        Serial.println("Fail to write SD command");
+        return false;
+    }
+
+    return true;
+}
+
+bool SmarTC_VEML6070::setACK(bool active, bool steps)
+{
+    cmd_buffer.bitfield.ACK = active;
+    cmd_buffer.bitfield.ACK_THD = steps;
+
+    clearInt();
+    if (!write())
+    {
+        Serial.println("Fail to write ACK settings");
+        return false;
+    }
+
+    return true;
+}
+
+uint16_t SmarTC_VEML6070::getUV()
+{
+    if (millis() - i_last_uvt > i_itv)
+        i_uv = readUV();
+
+    return i_uv;
+}
+
+/************************* Private methods *************************/
 bool SmarTC_VEML6070::write()
 {
     Serial.print("Write buffer : ");
@@ -148,24 +213,12 @@ bool SmarTC_VEML6070::write()
     return false;
 }
 
-bool SmarTC_VEML6070::shutDown(bool enable)
-{
-    cmd_buffer.bitfield.SD = enable;
-    if (!write())
-    {
-        Serial.println("Fail to write SD command");
-        return false;
-    }
-
-    return true;
-}
-
 uint16_t SmarTC_VEML6070::readUV()
 {
     if (Wire.requestFrom(VEML6070_ADDR_MSB, 1) != 1)
     {
         Serial.println("Fail to request MSB UV Value");
-        return -1;
+        return 0;
     }
 
     uint16_t uv = Wire.read();
@@ -174,25 +227,10 @@ uint16_t SmarTC_VEML6070::readUV()
     if (Wire.requestFrom(VEML6070_ADDR_LSB, 1) != 1)
     {
         Serial.println("Fail to request LSB UV Value");
-        return -1;
+        return 0;
     }
 
     uv |= Wire.read();
 
     return uv;
-}
-
-bool SmarTC_VEML6070::setACK(bool active, bool steps)
-{
-    cmd_buffer.bitfield.ACK = active;
-    cmd_buffer.bitfield.ACK_THD = steps;
-
-    clearInt();
-    if (!write())
-    {
-        Serial.println("Fail to write ACK settings");
-        return false;
-    }
-
-    return true;
 }

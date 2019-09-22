@@ -67,9 +67,9 @@ typedef enum veml6070_it
     VEML6070_4_T = 0x03, ///< Quadruple Time. Equal 0x0C in full buffer.
 } veml6070_it_e;
 
-// TODO: Consider integration time when requesting a value. Only get value when IT has been reach depending on IT settings and RSet value.
 // TODO: Debug trace library.
 // TODO: Get aditionnal trace macro info from Sensor project
+// TODO: Add library on PIO repo
 
 class SmarTC_VEML6070
 {
@@ -107,7 +107,7 @@ public:
     bool clearInt();
 
     /**
-     * @brief 
+     * @brief Shutdown VEML component (will draw between 1µA to 15µA)
      * 
      * @param enable true to shutdown the module, false to wakeup
      * 
@@ -117,11 +117,15 @@ public:
     bool shutDown(bool enable);
 
     /**
-     * @brief Read UV Sensor value
+     * @brief Get cached UV Sensor value
+     * 
+     * This method is "half-asynchronous" in the way that we are not waiting for the integration time.
+     * If last value requested is within IT, then return the last one got.
+     * If last value requested is no within IT, then request the value from VEML. 
      * 
      * @return uint16_t The UV value read from the sensor
      */
-    uint16_t readUV();
+    uint16_t getUV();
 
     /**
      * @brief Set/Unset ACK (i.e. interrupt) feature of the component.
@@ -134,15 +138,18 @@ public:
      */
     bool setACK(bool active, bool steps);
 
-     /**
+    /**
      * @brief Destroy the SmarTC_VEML6070 object
      */
     ~SmarTC_VEML6070();
 
 private:
-    veml6070_it_e i_it; ///< Integration time value
-    int i_rset;         ///< Rset resistance value in KOhm
+    veml6070_it_e i_it; ///< Integration time settings
+    uint i_rset;        ///< Rset resistance value in KOhm
+    uint i_itv;         ///< Integration time value
     bool i_init;        ///< Does the lib has been
+    uint16_t i_uv;      ///< UV Value of current IT
+    unsigned long i_last_uvt; ///< Last UV Value retrieved
 
     /**
      * @brief Data buffer definition for command. See http://www.vishay.com/docs/84277/veml6070.pdf (p6)
@@ -159,9 +166,22 @@ private:
         byte buf;
     } cmd_buffer_t;
 
-    cmd_buffer_t cmd_buffer;
+    cmd_buffer_t cmd_buffer; ///< Buffer used for I2C communication
 
+    /**
+     * @brief Internal i2C write function to communicate with VEML6070
+     * 
+     * @return true Write command success.
+     * @return false Write failure. See trace error code for root-cause.
+     */
     bool write();
+
+    /**
+     * @brief Internal function to effectivelly read UV information from VEML6070.
+     * 
+     * @return uint16_t UV Level value measured by the component.
+     */
+    uint16_t readUV();
 };
 
 #endif // SMARTC_VEML6070_H
