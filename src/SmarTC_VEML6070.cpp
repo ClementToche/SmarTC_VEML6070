@@ -92,8 +92,6 @@ bool SmarTC_VEML6070::launch()
 {
     if (!i_init)
     {
-        Wire.begin(); // Join bus as a master
-
         cmd_buffer.bitfield.RES = true; // Reserved bit to be always 1
 
         i_init = clearInt();
@@ -117,30 +115,22 @@ bool SmarTC_VEML6070::launch()
         i_init = false;
     }
 
+    Serial.printf("Integration time : %ims\n", i_itv);
+
     return i_init;
 }
 
 bool SmarTC_VEML6070::clearInt()
 {
-    if (0 == Wire.requestFrom(VEML6070_ADDR_ARA, 1))
+    Wire.begin();
+
+    Serial.printf("requestFrom: %04x\n", VEML6070_ADDR_ARA);
+    if (0 != Wire.requestFrom(VEML6070_ADDR_ARA, 1))
     {
-        Serial.println("Unable to request from ARA address");
+        // No value is got from this command.
+        Serial.println("Error in initialization");
         return false;
     }
-
-    unsigned long start = millis();
-    while (!Wire.available())
-    {
-        delay(1);
-        if (millis() - start > 5000)
-        {
-            Serial.println("Wire timeout");
-            return false;
-        }
-    }
-
-    // Ensure we have unstacked the value
-    Wire.read();
 
     return true;
 }
@@ -175,7 +165,10 @@ bool SmarTC_VEML6070::setACK(bool active, bool steps)
 uint16_t SmarTC_VEML6070::getUV()
 {
     if (millis() - i_last_uvt > i_itv)
+    {
+        i_last_uvt = millis();
         i_uv = readUV();
+    }
 
     return i_uv;
 }
@@ -183,10 +176,11 @@ uint16_t SmarTC_VEML6070::getUV()
 /************************* Private methods *************************/
 bool SmarTC_VEML6070::write()
 {
-    Serial.print("Write buffer : ");
-    Serial.println(cmd_buffer.buf, BIN);
+    Wire.begin();
 
+    Serial.printf("Begin Trans: %04x\n", VEML6070_ADDR_CMD);
     Wire.beginTransmission(VEML6070_ADDR_CMD);
+    Serial.printf("Write : %04x\n", cmd_buffer.buf);
     Wire.write(cmd_buffer.buf);
     byte ret = Wire.endTransmission();
 
@@ -215,22 +209,26 @@ bool SmarTC_VEML6070::write()
 
 uint16_t SmarTC_VEML6070::readUV()
 {
-    if (Wire.requestFrom(VEML6070_ADDR_MSB, 1) != 1)
+    Serial.printf("requestFrom: %04x\n", VEML6070_ADDR_MSB);
+    if (1 != Wire.requestFrom(VEML6070_ADDR_MSB, 1))
     {
         Serial.println("Fail to request MSB UV Value");
         return 0;
     }
 
     uint16_t uv = Wire.read();
+    Serial.printf("uvi: %i\n", uv);
     uv <<= 8;
 
-    if (Wire.requestFrom(VEML6070_ADDR_LSB, 1) != 1)
+    Serial.printf("requestFrom: %04x\n", VEML6070_ADDR_LSB);
+    if (1 != Wire.requestFrom(VEML6070_ADDR_LSB, 1))
     {
         Serial.println("Fail to request LSB UV Value");
         return 0;
     }
 
     uv |= Wire.read();
+    Serial.printf("uvi2: %i\n", uv);
 
     return uv;
 }
