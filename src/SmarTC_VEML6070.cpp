@@ -124,7 +124,6 @@ bool SmarTC_VEML6070::clearInt()
 {
     Wire.begin();
 
-    Serial.printf("requestFrom: %04x\n", VEML6070_ADDR_ARA);
     if (0 != Wire.requestFrom(VEML6070_ADDR_ARA, 1))
     {
         // No value is got from this command.
@@ -178,9 +177,7 @@ bool SmarTC_VEML6070::write()
 {
     Wire.begin();
 
-    Serial.printf("Begin Trans: %04x\n", VEML6070_ADDR_CMD);
     Wire.beginTransmission(VEML6070_ADDR_CMD);
-    Serial.printf("Write : %04x\n", cmd_buffer.buf);
     Wire.write(cmd_buffer.buf);
     byte ret = Wire.endTransmission();
 
@@ -209,26 +206,22 @@ bool SmarTC_VEML6070::write()
 
 uint16_t SmarTC_VEML6070::readUV()
 {
-    Serial.printf("requestFrom: %04x\n", VEML6070_ADDR_MSB);
     if (1 != Wire.requestFrom(VEML6070_ADDR_MSB, 1))
     {
         Serial.println("Fail to request MSB UV Value");
-        return 0;
+        return -1;
     }
 
     uint16_t uv = Wire.read();
-    Serial.printf("uvi: %i\n", uv);
     uv <<= 8;
 
-    Serial.printf("requestFrom: %04x\n", VEML6070_ADDR_LSB);
     if (1 != Wire.requestFrom(VEML6070_ADDR_LSB, 1))
     {
         Serial.println("Fail to request LSB UV Value");
-        return 0;
+        return -1;
     }
 
     uv |= Wire.read();
-    Serial.printf("uvi2: %i\n", uv);
 
     return uv;
 }
